@@ -1,8 +1,7 @@
 简体中文 | [English](ReadmeEN.md)  
 
 # segment anything（SAM）  
-官方网址：https://segment-anything.com/    
-官方项目源码：https://github.com/facebookresearch/segment-anything  
+[[`Paper`](https://ai.facebook.com/research/publications/segment-anything/)] [[`源码`](https://github.com/facebookresearch/segment-anything/)]  
 
 # Ours：segment anything（SAM） for CPP Inference  
 在SAMTool-CSharp仓库中，我们使用C#语言，ONNXRuntime for.Net框架对视觉大模型Segment Anaything完成了推理过程，并使用WPF与用户交互以及显示分割结果。  
