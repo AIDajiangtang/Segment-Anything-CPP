@@ -1,4 +1,7 @@
 English | [简体中文](ReadmeCN.md)<br/>
+
+[[`Paper`](https://ai.facebook.com/research/publications/segment-anything/)] [[`Source Code`](https://github.com/facebookresearch/segment-anything/)]  
+
 In the SAMTool-CSharp repository, we use the C# language and the ONNXRuntime for.Net framework to perform inference on the visual large-scale model "Segment Anything", and use WPF to interact with users and display segmentation results.<br/>
 
 In the SAMTool-CPP repository, we will use the C++ language and the ONNXRuntime for CPP framework to perform inference on the visual large-scale model "Segment Anything". This is done for two reasons: first, to improve running efficiency; and second, to have access to source code-level platforms.<br/>
