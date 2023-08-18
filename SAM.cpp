@@ -1,4 +1,7 @@
 #include"SAM.h"
+#include "opencv2/imgproc.hpp"
+#include "opencv2/imgcodecs.hpp"
+
 /// <summary>
 /// Image Transform
 /// Normalization and Resize
@@ -11,8 +14,8 @@ Transform::Transform(int targetwidth)
  }
 cv::Mat Transform::TransformImage(cv::Mat&orgimg)
 {
-    int orgwidth = orgimg.cols;    // å°å›¾åƒå®½åº¦
-    int orgheight = orgimg.rows;   // å°å›¾åƒé«˜åº¦
+    int orgwidth = orgimg.cols;    // Ğ¡Í¼Ïñ¿í¶È
+    int orgheight = orgimg.rows;   // Ğ¡Í¼Ïñ¸ß¶È
 
     int neww = 0;
     int newh = 0;
@@ -94,7 +97,7 @@ void SAM::ImageEncode(string imgpath)
     }
     vector<int64_t> inputShape{ 1, 3, this->m_targetSize, this->m_targetSize };
     Ort::MemoryInfo memoryInfo = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
-    // æ„é€ ONNXRuntimeçš„OrtValueå¯¹è±¡
+    // ¹¹ÔìONNXRuntimeµÄOrtValue¶ÔÏó
     Ort::Value inputTensor = Ort::Value::CreateTensor<float>(memoryInfo, imgv.data(), imgv.size(), inputShape.data(), inputShape.size());
     const char* inputNamesPre[] = { "x" }, * outputNamesPre[] = { "image_embeddings" };
     Ort::RunOptions run_options;

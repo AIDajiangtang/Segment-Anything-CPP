@@ -1,4 +1,5 @@
 #include"CLIP.h"
+#include"opencv2/imgproc.hpp"
 
 CLIP::CLIP()
 {

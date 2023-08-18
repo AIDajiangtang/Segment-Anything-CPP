@@ -1,33 +1,14 @@
-#include "opencv2/imgcodecs.hpp"
-#include "opencv2/highgui.hpp"
-#include "opencv2/stitching.hpp"
-#include "opencv2/xfeatures2d.hpp"
-#include "opencv2/xfeatures2d/nonfree.hpp"
-#include "opencv2/opencv_modules.hpp"
-#include <iostream>
-#include <fstream> //for file operations
 #include <vector>
+#include <string>
 #include <memory>
-#include "opencv2/core/ocl.hpp"
-#include <opencv2/core/utils/logger.hpp>
-#include "opencv2/stitching/detail/autocalib.hpp"
-#include "opencv2/stitching/detail/blenders.hpp"
-#include "opencv2/stitching/detail/timelapsers.hpp"
-#include "opencv2/stitching/detail/camera.hpp"
-#include "opencv2/stitching/detail/exposure_compensate.hpp"
-#include "opencv2/stitching/detail/matchers.hpp"
-#include "opencv2/stitching/detail/motion_estimators.hpp"
-#include "opencv2/stitching/detail/seam_finders.hpp"
-#include "opencv2/stitching/detail/matchers.hpp"
-#include "opencv2/stitching/warpers.hpp"
-
-#include "opencv2/calib3d.hpp"
+#include<iostream>
+#include "opencv2/core.hpp"
+#include "common.h"
 #include <onnxruntime_cxx_api.h>
-using namespace cv::detail;
 using namespace std;
 using namespace cv;
 
-class CLIP
+class SAM_EXPORTS CLIP
 {
 public:
     CLIP();

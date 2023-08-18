@@ -6,7 +6,7 @@
 
 SimpleTokenizer::SimpleTokenizer()
 {
-
+    this->Init();
 }
 
 SimpleTokenizer::~SimpleTokenizer()
@@ -27,23 +27,24 @@ void SimpleTokenizer::Init()
     }
 
 
-    std::string bpePath = "";
-    std::vector<std::tuple<std::string, std::string>> merges = LoadBPEMerges(bpePath);//加载BPE
+    std::wstring bpePath = L"D:\\bpe_simple_vocab_16e6.txt";
+    std::vector<std::tuple<std::wstring, std::wstring>> merges = LoadBPEMerges(bpePath);//加载BPE
 
 
       // 提取 byte_encoder 的值到 vocab
-    std::vector<std::string> vocab;
+    std::vector<std::wstring> vocab;
     for (const auto& kvp : this->byte_encoder) {
         vocab.push_back(kvp.second);
-        vocab.push_back(kvp.second + "</w>");
     }
-
+    for (const auto& kvp : this->byte_encoder) {
+        vocab.push_back(kvp.second + L"</w>");
+    }
     for (const auto& merge : merges) {
         vocab.push_back(std::get<0>(merge) + std::get<1>(merge));
     }
 
-    vocab.push_back("<|startoftext|>");
-    vocab.push_back("<|endoftext|>");
+    vocab.push_back(L"<|startoftext|>");
+    vocab.push_back(L"<|endoftext|>");
 
 
     for (int i = 0; i < vocab.size(); i++) {
@@ -59,96 +60,170 @@ void SimpleTokenizer::Init()
         this->bpe_ranks[merge] = index++;
     }
 
-    this->cache["<|startoftext|>"] = "<|startoftext|>";
+    this->cache[L"<|startoftext|>"] = L"<|startoftext|>";
 
-    this->pat = std::regex(R"(\s<\|startoftext\|\>|<\|endoftext\|\>|\s's|\s't|\s're|\s've|\s'm|\s'll|\s'd|[[:alpha:]]+|[[:digit:]]+|\S+)", std::regex_constants::icase);
+    this->pat = std::wregex(L"(\s<\|startoftext\|\>|<\|endoftext\|\>|\s's|\s't|\s're|\s've|\s'm|\s'll|\s'd|[[:alpha:]]+|[[:digit:]]+|\S+)", std::regex_constants::icase);
 }
-std::vector<int64_t> SimpleTokenizer::Encode(const std::string& text) {
+
+std::vector<int64_t> SimpleTokenizer::tokenlize(std::wstring textpromot)
+{
+    int sot_token = this->encoder[L"<|startoftext|>"];
+    int eot_token = this->encoder[L"<|endoftext|>"];
+
+    std::vector<std::wstring>texts;
+    texts.push_back(textpromot);
+
+    std::vector<int64_t> allTokens;
+
+    for (const std::wstring& text : texts)
+    {
+        allTokens.push_back(sot_token);
+        std::vector<int64_t> encodedText = this->Encode(text);
+        allTokens.insert(allTokens.end(), encodedText.begin(), encodedText.end());
+        allTokens.push_back(eot_token);
+    }
+
+    if (allTokens.size() > contextLength)
+    {
+        allTokens.erase(allTokens.begin() + contextLength, allTokens.end());
+        allTokens[contextLength - 1] = eot_token;
+    }
+    else
+    {
+        int addedCount = contextLength - allTokens.size();
+        allTokens.insert(allTokens.end(), addedCount, 0);
+    }
+    return allTokens;
+}
+std::vector<int64_t> SimpleTokenizer::Encode(const std::wstring& text) {
     std::vector<int64_t> bpeTokens;
-    std::string cleanedText = whitespace_clean(text);
+    std::wstring cleanedText = whitespace_clean(text);
     std::transform(cleanedText.begin(), cleanedText.end(), cleanedText.begin(), [](char c) {
         return std::tolower(static_cast<unsigned char>(c));
         });
 
-    std::regex pat(R"(<pattern>)");  // Replace <pattern> with your actual regex pattern
 
-    std::sregex_iterator iter(cleanedText.begin(), cleanedText.end(), pat);
-    std::sregex_iterator end;
-
-    for (; iter != end; ++iter) {
-        std::string token = "";
-        for (char c : iter->str()) {
-            token += byte_encoder[c];
+    std::wsmatch match;
+    std::wstring::const_iterator searchStart(cleanedText.cbegin());
+    while (std::regex_search(searchStart, cleanedText.cend(), match, this->pat)) {
+        std::wstring token = match[0].str();
+        std::wstring encodedToken;
+        for (wchar_t c : token) {
+            encodedToken += this->byte_encoder[c];
         }
-
-        std::stringstream ss(token);
-        std::string bpeToken;
-        while (std::getline(ss, bpeToken, ' ')) {
-            bpeTokens.push_back(encoder[bpeToken]);
+        std::vector<std::wstring> bpeTokenList = this->split(this->bpe(encodedToken), ' ');
+        // Split encodedToken into bpeTokenList using ' ' delimiter
+        // Implement splitting logic here
+        for (const std::wstring& bpeToken : bpeTokenList) {
+            bpeTokens.push_back(this->encoder[bpeToken]);
         }
+        searchStart = match.suffix().first;
     }
 
     return bpeTokens;
 }
+
+std::vector<std::wstring> SimpleTokenizer::split(const std::wstring& str, wchar_t delimiter) {
+    std::vector<std::wstring> tokens;
+    std::wistringstream iss(str);
+    std::wstring token;
+
+    while (std::getline(iss, token, delimiter)) {
+        tokens.push_back(token);
+    }
+
+    return tokens;
+}
 /// <summary>
 /// 数字向量解码成文本
 /// </summary>
-std::string SimpleTokenizer::Decode(const std::vector<int>& tokens) {
-    std::stringstream textBuilder;
+std::wstring SimpleTokenizer::Decode(const std::vector<int>& tokens) {
+    std::wstringstream textBuilder;
     for (int token : tokens) {
         textBuilder << decoder[token];
     }
-    std::string text = textBuilder.str();
+    std::wstring text = textBuilder.str();
 
     std::vector<uint8_t> byteList;
     for (char c : text) {
-        byteList.push_back(static_cast<uint8_t>(byte_decoder[std::string(1, c)]));
+        byteList.push_back(static_cast<uint8_t>(byte_decoder[std::wstring(1, c)]));
     }
-    std::string decodedText(byteList.begin(), byteList.end());
+    std::wstring decodedText(byteList.begin(), byteList.end());
     std::replace(decodedText.begin(), decodedText.end(), '/', ' ');
 
     return decodedText;
 }
 
+std::tuple<std::wstring, std::wstring> SimpleTokenizer::FindFirstPair(const std::vector<std::pair<std::wstring, std::wstring>>& pairs, const std::unordered_map<std::tuple<std::wstring, std::wstring>, int, std::TupleHash>& bpe_ranks) {
+    auto compareByRank = [&](const std::pair<std::wstring, std::wstring>& a, const std::pair<std::wstring, std::wstring>& b) {
+        if (bpe_ranks.count(a) && bpe_ranks.count(b)) {
+            return bpe_ranks.at(a) < bpe_ranks.at(b);
+        }
+        else if (bpe_ranks.count(a)) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    };
 
-std::string SimpleTokenizer::bpe(const std::string& token) {
+    auto it = std::min_element(pairs.begin(), pairs.end(), compareByRank);
+
+    return std::make_tuple(it->first, it->second);
+}
+std::wstring SimpleTokenizer::bpe(const std::wstring& token) {
     if (this->cache.count(token) > 0) {
         return cache[token];
     }
 
-    std::vector<std::string> word;
+    std::vector<std::wstring> word;
     for (size_t i = 0; i < token.length() - 1; i++) {
-        word.push_back(std::string(1, token[i]));
+        word.push_back(std::wstring(1, token[i]));
     }
-    word.push_back(token.substr(token.length() - 1) + "</w>");
+    word.push_back(token.substr(token.length() - 1) + L"</w>");
 
-    std::vector<std::pair<std::string, std::string>> pairs = GetPairs(word);
+    std::vector<std::pair<std::wstring, std::wstring>> pairs = GetPairs(word);
 
     if (pairs.empty()) {
-        return token + "</w>";
+        return token + L"</w>";
     }
 
     while (true) {
-        auto minPair = std::min_element(pairs.begin(), pairs.end(),
-            [&](const std::pair<std::string, std::string>& pair1, const std::pair<std::string, std::string>& pair2) {
+       /* auto minPair = std::min_element(pairs.begin(), pairs.end(),
+            [&](const std::pair<std::wstring, std::wstring>& pair1, const std::pair<std::wstring, std::wstring>& pair2) {
                 return bpe_ranks.count(pair1) ? bpe_ranks[pair1] : std::numeric_limits<double>::infinity() <
                     bpe_ranks.count(pair2) ? bpe_ranks[pair2] : std::numeric_limits<double>::infinity();
-            });
-
-        std::string first = minPair->first;
-        std::string second = minPair->second;
+            });*/
+        std::tuple<std::wstring, std::wstring> firstPair = FindFirstPair(pairs, this->bpe_ranks);
+        
+        if (bpe_ranks.find(firstPair) == bpe_ranks.end()) {
+            break;
+        }
+        std::wstring first = std::get<0> (firstPair);
+        std::wstring second = std::get<1>(firstPair);
 
         if (!bpe_ranks.count(std::make_pair(first, second))) {
             break;
         }
 
-        std::vector<std::string> newWord;
-        size_t i = 0;
+        std::vector<std::wstring> newWord;
+        int i = 0;
         while (i < word.size()) {
             try {
-                size_t j = std::find(word.begin() + i, word.end(), first) - word.begin();
-                newWord.insert(newWord.end(), word.begin() + i, word.begin() + j);
-                i = j;
+                int j = std::find(word.begin() + i, word.end(), first) - word.begin();
+                if (j == word.size())j = -1;
+
+                if (j - i >= i)
+                {
+                    newWord.insert(newWord.end(), word.begin() + i, word.begin() + j);
+                    i = j;
+                }
+                else
+                {
+                    newWord.insert(newWord.end(), word.begin() + i, word.end());
+                    break;
+                }
+               
             }
             catch (...) {
                 newWord.insert(newWord.end(), word.begin() + i, word.end());
@@ -175,9 +250,9 @@ std::string SimpleTokenizer::bpe(const std::string& token) {
         }
     }
 
-    std::string result = "";
-    for (const std::string& w : word) {
-        result += w + " ";
+    std::wstring result = L"";
+    for (const std::wstring& w : word) {
+        result += w + L" ";
     }
     result = result.substr(0, result.size() - 1); // Remove trailing space
 
@@ -185,21 +260,21 @@ std::string SimpleTokenizer::bpe(const std::string& token) {
     return result;
 }
 
-std::map<int, std::string> SimpleTokenizer::BytesToUnicode() {
+std::unordered_map<int, std::wstring> SimpleTokenizer::BytesToUnicode() {
     std::vector<int> bs;
     std::vector<int> cs;
 
-    for (int b = static_cast<int>('!'); b <= static_cast<int>('~'); b++) {
+    for (int b = static_cast<int>(L'!'); b <= static_cast<int>(L'~'); b++) {
         bs.push_back(b);
         cs.push_back(b);
     }
 
-    for (int b = static_cast<int>('¡'); b <= static_cast<int>('¬'); b++) {
+    for (int b = static_cast<int>(L'¡'); b <= static_cast<int>(L'¬'); b++) {
         bs.push_back(b);
         cs.push_back(b);
     }
 
-    for (int b = static_cast<int>('®'); b <= static_cast<int>('ÿ'); b++) {
+    for (int b = static_cast<int>(L'®'); b <= static_cast<int>(L'ÿ'); b++) {
         bs.push_back(b);
         cs.push_back(b);
     }
@@ -213,29 +288,46 @@ std::map<int, std::string> SimpleTokenizer::BytesToUnicode() {
         }
     }
 
-    std::map<int, std::string> byteToUnicode;
+    std::unordered_map<int, std::wstring> byteToUnicode;
     for (size_t i = 0; i < bs.size(); i++) {
-        byteToUnicode[bs[i]] = std::string(1, static_cast<char>(cs[i]));
+        byteToUnicode[bs[i]] = std::wstring(1, static_cast<wchar_t>(cs[i]));
     }
 
     return byteToUnicode;
+
 }
 /// <summary>
 /// 加载bpe文件
 /// </summary>
-std::vector<std::tuple<std::string, std::string>> SimpleTokenizer::LoadBPEMerges(const std::string& bpePath) {
-    std::vector<std::tuple<std::string, std::string>> merges;
+std::vector<std::tuple<std::wstring, std::wstring>> SimpleTokenizer::LoadBPEMerges(const std::wstring& bpePath) {
+   
+    std::vector<std::tuple<std::wstring, std::wstring>> merges;
 
-    std::ifstream fileStream(bpePath);
+    std::wifstream fileStream(bpePath);
     if (!fileStream.is_open()) {
-        std::cerr << "Failed to open file: " << bpePath << std::endl;
+        std::wcerr << L"Failed to open file: " << bpePath << std::endl;
         return merges;
     }
 
-    std::string line;
-    while (std::getline(fileStream, line)) {
-        std::istringstream streamReader(line);
-        std::string merge[2];
+
+    std::wstring content;
+    std::getline(fileStream, content);
+
+    std::vector<std::wstring> lines;
+    size_t startLine = 1;
+    size_t endLine = 49152 - 256 - 2 + 1;
+
+    while (!fileStream.eof()) {
+        std::wstring line;
+        std::getline(fileStream, line);
+        lines.push_back(line);
+    }
+
+    std::vector<std::wstring> lineSegment(lines.begin() + startLine, lines.begin() + endLine);
+
+    for (const std::wstring& line : lineSegment) {
+        std::wistringstream streamReader(line);
+        std::wstring merge[2];
         streamReader >> merge[0] >> merge[1];
         merges.emplace_back(merge[0], merge[1]);
     }
@@ -244,22 +336,24 @@ std::vector<std::tuple<std::string, std::string>> SimpleTokenizer::LoadBPEMerges
 
     return merges;
 }
-std::vector<std::pair<std::string, std::string>> SimpleTokenizer::GetPairs(const std::vector<std::string>& words) {
-    std::vector<std::pair<std::string, std::string>> pairs;
+std::vector<std::pair<std::wstring, std::wstring>> SimpleTokenizer::GetPairs(const std::vector<std::wstring>& words) {
+    std::vector<std::pair<std::wstring, std::wstring>> pairs;
+    
+    std::wstring prevChar = words[0];
 
-    for (std::size_t i = 0; i < words.size() - 1; ++i) {
-        for (std::size_t j = i + 1; j < words.size(); ++j) {
-            pairs.push_back(std::make_pair(words[i], words[j]));
-        }
+    for (size_t i = 1; i < words.size(); i++) {
+        std::wstring currentChar = words[i];
+        pairs.push_back(std::make_pair(prevChar, currentChar));
+        prevChar = currentChar;
     }
 
     return pairs;
 }
-//std::unordered_set<std::pair<std::string, std::string>> SimpleTokenizer::GetPairs(const std::vector<std::string>& word) {
-//    std::unordered_set<std::pair<std::string, std::string>> pairs;
-//    std::string prevChar = word[0];
+//std::unordered_set<std::pair<std::wstring, std::wstring>> SimpleTokenizer::GetPairs(const std::vector<std::wstring>& word) {
+//    std::unordered_set<std::pair<std::wstring, std::wstring>> pairs;
+//    std::wstring prevChar = word[0];
 //    for (int i = 1; i < word.size(); i++) {
-//        std::string currentChar = word[i];
+//        std::wstring currentChar = word[i];
 //        pairs.insert(std::make_pair(prevChar, currentChar));
 //        prevChar = currentChar;
 //    }
@@ -268,12 +362,12 @@ std::vector<std::pair<std::string, std::string>> SimpleTokenizer::GetPairs(const
 /// <summary>
 /// 去掉空白格
 /// </summary>
-std::string SimpleTokenizer::whitespace_clean(std::string text) {
+std::wstring SimpleTokenizer::whitespace_clean(std::wstring text) {
     // 使用正则表达式替换多个连续空白字符为单个空格
-    text = std::regex_replace(text, std::regex("\\s+"), " ");
-
+    text = std::regex_replace(text, std::wregex(L"\\s+"), L" ");
+    
     // 去除字符串两端的空白字符
-    text = std::regex_replace(text, std::regex("^\\s+|\\s+$"), "");
+    text = std::regex_replace(text, std::wregex(L"^\\s+|\\s+$"), L"");
 
     return text;
 }
