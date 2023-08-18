@@ -6,6 +6,8 @@ CLIP::CLIP()
     std::wstring encoderwstr = L"D:\\visual.onnx";
     std::wstring decoderwstr = L"D:\\textual.onnx";
     this->LoadONNXModel(L"D:\\visual.onnx", L"D:\\textual.onnx");
+
+    this->mTokenlizer = std::unique_ptr<SimpleTokenizer>(new SimpleTokenizer());
 }
 void CLIP::LoadONNXModel(std::wstring visualpath, std::wstring textualpath)
 {
@@ -62,12 +64,14 @@ void CLIP::ImgEncoder(cv::Mat img, std::vector<float>& embedding, std::vector<in
     }
 
 }
-void CLIP::TxtEncoder(std::vector<int64_t>txttoken, vector<int64_t>txttokenShape,std::vector<float>& embedding, std::vector<int64_t>& embeddingshape)
+void CLIP::TxtEncoder(std::wstring txt, vector<int64_t>txttokenShape,std::vector<float>& embedding, std::vector<int64_t>& embeddingshape)
 {
+    std::vector<int64>txtToken = this->mTokenlizer->tokenlize(txt);
+
     const char* inputNames[] = { "input" }, * outputNames[] = { "output" };
     // 构造ONNXRuntime的OrtValue对象
     Ort::MemoryInfo memoryInfo = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
-    Ort::Value txtTensor = Ort::Value::CreateTensor<int64_t>(memoryInfo, txttoken.data(), txttoken.size(), txttokenShape.data(), txttokenShape.size());
+    Ort::Value txtTensor = Ort::Value::CreateTensor<int64_t>(memoryInfo, txtToken.data(), txtToken.size(), txttokenShape.data(), txttokenShape.size());
     Ort::RunOptions run_options;
     vector<Ort::Value> Outputs = this->m_TxtEncoder->Run(run_options, inputNames, &txtTensor, 1, outputNames, 1);
 
@@ -87,3 +91,5 @@ void CLIP::TxtEncoder(std::vector<int64_t>txttoken, vector<int64_t>txttokenShape
         embedding[i] = txtembedding[i];
     }
 }
+
+

@@ -62,5 +62,6 @@ protected:
     std::vector<std::tuple<std::wstring, std::wstring>> LoadBPEMerges(const std::wstring& bpePath);
     std::vector<std::pair<std::wstring, std::wstring>> GetPairs(const std::vector<std::wstring>& words);
     std::vector<std::wstring> split(const std::wstring& str, wchar_t delimiter);
-    std::tuple<std::wstring, std::wstring> FindFirstPair(const std::vector<std::pair<std::wstring, std::wstring>>& pairs, const std::unordered_map<std::tuple<std::wstring, std::wstring>, int, std::TupleHash>& bpe_ranks);
+    std::tuple<std::wstring, std::wstring> FindFirstPair(const std::vector<std::pair<std::wstring, std::wstring>>& pairs,
+        const std::unordered_map<std::tuple<std::wstring, std::wstring>, int, std::TupleHash>& bpe_ranks);
 };
