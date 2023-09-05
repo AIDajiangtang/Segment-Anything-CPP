@@ -34,8 +34,8 @@ void CLIP::ImgEncoder(cv::Mat img, std::vector<float>& embedding, std::vector<in
             float r = resizeImage.at<cv::Vec3f>(i, j)[2];
             int index = i * resizeImage.cols + j;
             imgdata[index] = r;
-            imgdata[224 * 224 + index] = r;
-            imgdata[224 * 224 * 2 + index] = r;
+            imgdata[224 * 224 + index] = g;
+            imgdata[224 * 224 * 2 + index] = b;
         }
     }
 
