@@ -9,6 +9,22 @@
 这样你就可以将模型部署到Windows，Linux，甚至Android等嵌入式设备中。  
 UI也不仅限于WPF了，你可以在QT，Html，Winform中任意选择，我们会提供WPF的版本。  
 
+微信公众号回复SAM获取第三方库：OpenCV和ONNXRuntime，然后将其解压到源码目录，OPenCV是我用Visual Studio2019编译的。ONNXRuntime不需要自己编译，下载官网编译好的即可  
+最终的项目结构如下：  
+project_root/  
+  |- common.h  
+  |- CLIP.h  
+  |- CLIP.cpp  
+  |- SAM.h  
+  |- SAM.cpp  
+  |- SimpleTokenizer.h
+  |- SimpleTokenizer.cpp
+  |- cppDemo.cpp  
+  |- opencv/  
+  |- onnxruntime-win-x64-1.15.1/  
+  |- CMakeLists.txt  
+
+
 # Text Promot：CLIP  
 SAM支持的promot有Point，Box，Mask以及Text文本，前三个相对比较容易实现和理解，Text Promot相对比较复杂。  
 对于Text Promot，需要引入另一个深度学习模型CLIP，简单来说，他能够将文本和图像映射到同一个向量空间中，这样文本和图像就能够进行比较了。   
