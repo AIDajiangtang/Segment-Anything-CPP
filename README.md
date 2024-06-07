@@ -16,9 +16,9 @@ project_root/
   |- CLIP.h  
   |- CLIP.cpp  
   |- SAM.h  
-  |- SAM.cpp  
-  |- SimpleTokenizer.h
-  |- SimpleTokenizer.cpp
+  |- SAM.cpp 
+  |- SimpleTokenizer.h 
+  |- SimpleTokenizer.cpp 
   |- cppDemo.cpp  
   |- opencv/  
   |- onnxruntime-win-x64-1.15.1/  
